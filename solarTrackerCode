@@ -1,0 +1,94 @@
+#include <Servo.h>
+#include <LiquidCrystal.h>
+
+const int servoThreshold = 50;
+
+// LCD instantiation
+const int rs = 1 , en = 2, d4 = 4, d5 = 5, d6 = 6, d7 = 7; 
+LiquidCrystal lcd(rs, en, d4, d5 , d6, d7);
+
+//Servo instantiation
+Servo servo1;
+Servo servo2;
+
+int i = 180;
+int j = 180;
+int up = 0;
+int down = 0;
+int left = 0;
+int right = 0;
+int illuminance = 0;
+int voltage = 0;
+
+void setup() {
+  // Setup Servo
+   servo1.attach(10);
+   servo2.attach(9);
+   servo1.write(i);
+   servo2.write(j);
+   
+   // Setup LCD
+   lcd.begin(16,2);
+   lcd.clear();
+}
+
+void loop() {
+  
+  // Read the values from pins
+  
+  left = analogRead(A0);
+  right = analogRead(A1);
+  down = analogRead(A3);
+  up = analogRead(A4);  
+  illuminance = round(luxConversion((up + down + left + right) / 2));
+  voltage = round(analogRead(A5)*4.8875855); // 1 unit = 4.8875855mV
+  
+  // Display voltage and intensity on LCD
+  
+  lcd.setCursor(0,0);
+  lcd.print("V: " + String(voltage) + " mV");
+  lcd.setCursor(0,1);
+  lcd.print("I: " + String(illuminance) + " lux");
+  
+  // Move the servomotors
+  
+  if ((left - right) > servoThreshold) {
+    if (servo1.read() < 180) {
+      i++;
+    }
+    servo1.write(i);
+  } else if ((right - left) > servoThreshold) {
+    if (servo1.read() > 0) {
+      i--;
+    }
+    servo1.write(i);  
+  }
+  
+  if ((down - up) > servoThreshold) {
+    if (servo2.read() < 180) {
+      j++;
+    }
+    servo2.write(j);  
+  } else if ((up - down) > servoThreshold) {
+    if (servo2.read() > 0) {
+      j--; 
+    }
+    servo2.write(j);
+  }
+  
+  delay(250);
+  lcd.clear();
+}
+
+float luxConversion(int pinValue){
+  if ((pinValue != 0)) {
+    const int res = 1;
+    
+    float Vout = pinValue * 4.8875855;         // Conversion analog to voltage
+    float RLDR = res * (Vout/(5000-Vout));     // Conversion voltage to resistance
+    float lux = 500/RLDR;                      // Conversion resitance to lux
+    return lux;
+  }
+  
+  return pinValue;
+}
